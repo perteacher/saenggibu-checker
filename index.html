@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>생기부 문구 점검기 · 2026학년도 기재요령 기준</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @font-face {
+    font-family: 'Pretendard';
+    src: local('Pretendard');
+  }
+  :root{
+    --paper: #f6f3ec;
+    --paper-line: #e4ddc9;
+    --ink: #262220;
+    --ink-soft: #6b6255;
+    --card: #fffdf8;
+    --red: #a3372c;
+    --red-bg: #fbe9e5;
+    --amber: #9a6a18;
+    --amber-bg: #fbf0dc;
+    --ok: #2f6b4f;
+    --ok-bg: #e7f2ea;
+    --navy: #2c3a4b;
+    --navy-soft: #4c5f74;
+    --rule: #d8cfb8;
+    --radius: 3px;
+  }
+  * { box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Pretendard', -apple-system, "Noto Sans KR", "Malgun Gothic", sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    background-image:
+      linear-gradient(var(--paper-line) 1px, transparent 1px);
+    background-size: 100% 32px;
+    background-attachment: local;
+  }
+  .app{
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    min-height: 100vh;
+  }
+  @media (max-width: 900px){
+    .app{ grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    background: var(--navy);
+    color: #eef1f3;
+    padding: 28px 22px 60px;
+    background-image: none;
+  }
+  .brand{
+    font-family: Georgia, "Noto Serif KR", serif;
+    font-size: 21px;
+    letter-spacing: 0.01em;
+    margin: 0 0 2px;
+    color: #fff;
+  }
+  .brand small{
+    display:block;
+    font-family: 'Pretendard', sans-serif;
+    font-size: 11px;
+    color: #a9b7c6;
+    margin-top: 6px;
+    letter-spacing: 0.04em;
+  }
+  .stamp{
+    display:inline-block;
+    margin-top: 14px;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    color: #d7ab8a;
+    border: 1px solid #6d5847;
+    padding: 3px 8px;
+    border-radius: 2px;
+    text-transform: uppercase;
+  }
+  .side-section{
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.12);
+  }
+  .side-section h2{
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #9fb0c1;
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+  .side-section h2 .n{
+    display:inline-block;
+    width: 16px; height:16px;
+    line-height:16px;
+    text-align:center;
+    background: #d7ab8a;
+    color: #2c3a4b;
+    border-radius: 50%;
+    font-size: 10px;
+    margin-right: 6px;
+    font-weight: 700;
+  }
+  .drop{
+    border: 1.5px dashed #5c7086;
+    border-radius: 4px;
+    padding: 18px 14px;
+    text-align:center;
+    font-size: 12.5px;
+    color: #c6d0da;
+    cursor:pointer;
+    transition: all .15s;
+  }
+  .drop:hover, .drop.drag{
+    border-color: #d7ab8a;
+    background: rgba(215,171,138,0.08);
+  }
+  .drop input{ display:none; }
+  .filename{
+    margin-top: 10px;
+    font-size: 12px;
+    color: #d7ab8a;
+    word-break: break-all;
+  }
+  select, .btn, input[type=number], input[type=text]{
+    font-family: inherit;
+    font-size: 12.5px;
+  }
+  .field{ margin-bottom: 10px; }
+  .field label{
+    display:block;
+    font-size: 11.5px;
+    color: #9fb0c1;
+    margin-bottom: 4px;
+  }
+  select{
+    width:100%;
+    padding: 7px 8px;
+    border-radius: 3px;
+    border: 1px solid #46586b;
+    background: #24303e;
+    color: #eef1f3;
+  }
+  .maprow{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+  .maprow .colname{
+    flex: 1 1 auto;
+    font-size: 11.5px;
+    color: #cfd8e0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .maprow select{ flex: 0 0 128px; padding: 5px 6px; font-size: 11px;}
+  .btn{
+    display:block;
+    width:100%;
+    padding: 10px 12px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin-top: 6px;
+  }
+  .btn:hover{ background: #8a2e24; }
+  .btn:disabled{ background:#5c5651; cursor:not-allowed; }
+  .btn.ghost{
+    background: transparent;
+    border: 1px solid #5c7086;
+    color: #cfd8e0;
+    font-weight: 500;
+  }
+  .btn.ghost:hover{ border-color:#d7ab8a; color:#d7ab8a; }
+  .hint{
+    font-size: 11px;
+    color: #8393a4;
+    margin-top: 6px;
+    line-height:1.5;
+  }
+  .limits-grid{
+    display:grid;
+    grid-template-columns: 1fr 56px;
+    gap: 6px 8px;
+    align-items:center;
+  }
+  .limits-grid label{ font-size: 11.5px; color:#cfd8e0; }
+  .limits-grid input{
+    width:100%;
+    padding: 4px 5px;
+    border-radius: 3px;
+    border: 1px solid #46586b;
+    background: #24303e;
+    color: #eef1f3;
+    text-align:right;
+  }
+  details summary{
+    cursor:pointer;
+    font-size: 11.5px;
+    color: #9fb0c1;
+    margin-bottom: 8px;
+  }
+
+  /* ---------- Main ---------- */
+  .main{ padding: 34px 44px 80px; max-width: 1080px; }
+  .masthead{
+    display:flex;
+    justify-content:space-between;
+    align-items: flex-end;
+    border-bottom: 3px double var(--ink);
+    padding-bottom: 12px;
+    margin-bottom: 22px;
+  }
+  .masthead h1{
+    font-family: Georgia, "Noto Serif KR", serif;
+    font-size: 26px;
+    margin: 0;
+    font-weight: 700;
+  }
+  .masthead .sub{
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 4px;
+  }
+  .masthead .date{
+    font-family: Georgia, "Noto Serif KR", serif;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    text-align:right;
+  }
+
+  .empty{
+    margin-top: 60px;
+    text-align:center;
+    color: var(--ink-soft);
+  }
+  .empty .big{
+    font-family: Georgia, "Noto Serif KR", serif;
+    font-size: 20px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .empty ol{
+    display:inline-block;
+    text-align:left;
+    font-size: 13px;
+    line-height: 1.9;
+    margin-top: 18px;
+  }
+
+  .summary{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 26px;
+  }
+  .sumcard{
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .sumcard .num{
+    font-family: Georgia, "Noto Serif KR", serif;
+    font-size: 26px;
+    line-height:1;
+  }
+  .sumcard .lbl{
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+  .sumcard.err .num{ color: var(--red); }
+  .sumcard.warn .num{ color: var(--amber); }
+  .sumcard.ok .num{ color: var(--ok); }
+
+  .toolbar{
+    display:flex;
+    gap: 10px;
+    align-items:center;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .toolbar select, .toolbar input{
+    padding: 6px 9px;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: #fff;
+    font-size: 12.5px;
+    color: var(--ink);
+  }
+  .toolbar .spacer{ flex: 1; }
+  .toolbar .btn{
+    width:auto;
+    padding: 7px 14px;
+    background: var(--navy);
+    font-size: 12.5px;
+  }
+  .toolbar .btn:hover{ background: var(--navy-soft); }
+
+  .student-block{
+    margin-bottom: 30px;
+  }
+  .student-head{
+    display:flex;
+    align-items:baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+  }
+  .student-head .name{
+    font-family: Georgia, "Noto Serif KR", serif;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .student-head .meta{
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .student-head .counts{
+    margin-left:auto;
+    font-size: 11.5px;
+  }
+  .student-head .counts .e{ color: var(--red); font-weight:600; }
+  .student-head .counts .w{ color: var(--amber); font-weight:600; margin-left:8px;}
+  .student-head .counts .clean{ color: var(--ok); }
+
+  .entry{
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 10px;
+  }
+  .entry.has-error{ border-left-color: var(--red); }
+  .entry.has-warn{ border-left-color: var(--amber); }
+  .entry-head{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .tag{
+    font-size: 10.5px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    background: #eee6d3;
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  .charcount{
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-left: auto;
+  }
+  .charcount.over{ color: var(--red); font-weight:700; }
+  .entry-text{
+    font-family: Georgia, "Noto Serif KR", serif;
+    font-size: 13.5px;
+    line-height: 1.8;
+    color: #3a342e;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  mark.flag-err{
+    background: var(--red-bg);
+    color: var(--red);
+    text-decoration: underline wavy var(--red);
+    text-underline-offset: 3px;
+    padding: 0 1px;
+    border-radius: 2px;
+  }
+  mark.flag-warn{
+    background: var(--amber-bg);
+    color: var(--amber);
+    text-decoration: underline wavy var(--amber);
+    text-underline-offset: 3px;
+    padding: 0 1px;
+    border-radius: 2px;
+  }
+  .issues{
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--rule);
+  }
+  .issue{
+    display:flex;
+    gap: 8px;
+    font-size: 12px;
+    margin-bottom: 4px;
+    align-items: flex-start;
+  }
+  .issue .dot{
+    flex: 0 0 auto;
+    width: 8px; height:8px;
+    border-radius:50%;
+    margin-top: 5px;
+  }
+  .issue.error .dot{ background: var(--red); }
+  .issue.warn .dot{ background: var(--amber); }
+  .issue .txt b{ font-weight:700; }
+  .issue .txt .detail{ color: var(--ink-soft); }
+  .clean-note{
+    font-size: 12px;
+    color: var(--ok);
+  }
+
+  .foot{
+    margin-top: 50px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+  .filelist{ margin-top: 10px; }
+  .filerow{
+    display:flex; align-items:center; gap:6px;
+    font-size: 11.5px; color:#cfd8e0;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .filerow .fname{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .filerow .fbadge{
+    font-size: 10px; padding: 1px 7px; border-radius: 10px;
+    background: #3a4a5c; color: #d7ab8a; white-space:nowrap; font-weight:600;
+  }
+  .filerow .fbadge.fail{ background:#5c2e28; color:#f0b8ab; }
+  .filerow .fcount{ color:#8393a4; font-size:10.5px; }
+
+  .termpanel{
+    background: var(--amber-bg);
+    border: 1px solid #e6c98a;
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 22px;
+  }
+  .termpanel-head{
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--amber);
+    margin-bottom: 8px;
+  }
+  .termrow{
+    font-size: 12.5px;
+    padding: 4px 0;
+    color: #4a3c1f;
+    border-top: 1px dashed #e6c98a;
+  }
+  .termrow:first-of-type{ border-top: none; }
+  .termvariant{ color: #4a3c1f; }
+  .termvariant b{ font-weight:700; }
+  .termvariant.keep b{ color: var(--ok); }
+  .termvariant.change{ color: var(--red); font-weight:600; }
+  .termvariant.change b{ color: var(--red); }
+</style>
+<body>
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <p class="brand">생기부 문구 점검기
+      <small>SAENGGIBU REVIEW DESK</small>
+    </p>
+    <span class="stamp">2026학년도 기재요령 기준</span>
+
+    <div class="side-section">
+      <h2><span class="n">1</span>엑셀 업로드</h2>
+      <div class="drop" id="dropZone">
+        세특·창체·행발 엑셀을 한 번에<br>끌어다 놓거나 클릭해서 선택하세요<br>
+        <span style="font-size:10.5px;color:#8393a4;">.xlsx / .xls · 여러 파일 동시 선택 가능</span>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple>
+      </div>
+      <div class="filelist" id="fileList"></div>
+    </div>
+
+    <div class="side-section" id="mapSection" hidden>
+      <h2><span class="n">2</span>표 형식 — 열 지정</h2>
+      <div class="hint" style="margin-bottom:10px;">이 파일은 NEIS 원본 서식으로 자동 인식되지 않았습니다. 어떤 열이 어떤 항목인지 직접 지정하세요.</div>
+      <div class="field">
+        <label>학생 이름(또는 번호) 열</label>
+        <select id="idColumn"></select>
+      </div>
+      <div id="mapList"></div>
+    </div>
+
+    <div class="side-section" id="limitSection" hidden>
+      <h2><span class="n">3</span>글자수 상한 · 점검 범위</h2>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#cfd8e0;margin-bottom:10px;">
+        <input type="checkbox" id="skipLowerGrades" checked>
+        1·2학년 항목은 글자수 점검 제외 (3학년만 확인)
+      </label>
+      <details>
+        <summary>항목별 글자수 상한값 펼치기</summary>
+        <div class="limits-grid" id="limitGrid"></div>
+        <div class="hint">공백 포함 글자수 기준. 정확한 상한은 2026학년도 기재요령 참고자료7(영역별 입력 가능 최대 글자수)에서 다시 확인하세요.</div>
+      </details>
+    </div>
+
+    <div class="side-section" id="runSection" hidden>
+      <h2><span class="n">4</span>점검 실행</h2>
+      <button class="btn" id="runBtn">문구 점검하기</button>
+      <div class="hint">모든 처리는 이 브라우저 안에서만 이루어지며, 파일은 어디로도 전송되지 않습니다.</div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+    <div class="masthead">
+      <div>
+        <h1>생기부 문구 점검 결과</h1>
+        <div class="sub">띄어쓰기·조사 오류 · 사교육 유발 요인 · 금지 표현 · 글자수 · 기재 신뢰도</div>
+      </div>
+      <div class="date" id="todayDate"></div>
+    </div>
+
+    <div class="empty" id="emptyState">
+      <div class="big">왼쪽에서 세특·창체·행발 엑셀을 올려 시작하세요</div>
+      <div style="font-size:12.5px;">NEIS에서 내려받은 원본 그대로 여러 개를 한 번에 올릴 수 있습니다.</div>
+      <ol>
+        <li>① 세특 / 창체 / 행발 엑셀 업로드 — 자동으로 종류를 인식합니다</li>
+        <li>② 필요하면 글자수 점검 범위 조정 (기본: 3학년만)</li>
+        <li>③ 점검 실행 → 문단 안에서 문제 구간을 바로 확인</li>
+      </ol>
+    </div>
+
+    <div id="resultArea" hidden>
+      <div class="summary" id="summaryCards"></div>
+      <div class="termpanel" id="termPanel" hidden></div>
+
+      <div class="toolbar">
+        <select id="filterStudent"><option value="">전체 학생</option></select>
+        <select id="filterCategory"><option value="">전체 항목</option></select>
+        <select id="filterSeverity">
+          <option value="">전체 (오류+주의)</option>
+          <option value="error">오류만</option>
+          <option value="warn">주의만</option>
+        </select>
+        <label style="font-size:12px;display:flex;align-items:center;gap:5px;">
+          <input type="checkbox" id="hideClean"> 문제 없는 항목 숨기기
+        </label>
+        <label style="font-size:12px;display:flex;align-items:center;gap:5px;">
+          <input type="checkbox" id="showTermIssues"> 표기 통일 필요 표시
+        </label>
+        <div class="spacer"></div>
+        <button class="btn" id="exportBtn">결과 엑셀로 내보내기</button>
+      </div>
+
+      <div id="resultList"></div>
+    </div>
+
+    <div class="foot">
+      본 도구는 「2026학년도 학교생활기록부 기재요령」의 유의사항·금지 표현 목록을 바탕으로 한 자동 점검 보조 도구이며, 최종 판단과 수정 책임은 작성 교사에게 있습니다. 띄어쓰기·반복 검사는 실제 맞춤법 검사기가 아닌 패턴 기반 점검이라 놓치는 오류나 드문 오탐이 있을 수 있으니, 표시된 부분은 반드시 원문과 대조해 확인하세요.
+    </div>
+  </main>
+</div>
+</body>
+<script>
+(function(){
+
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString('ko-KR', {year:'numeric', month:'long', day:'numeric'});
+
+  /* ---------------- Category definitions ---------------- */
+  var CATEGORIES = [
+    {id:'skip',       label:'사용 안 함'},
+    {id:'auto',        label:'자율·자치활동', limit:500},
+    {id:'club',        label:'동아리활동', limit:500},
+    {id:'career',       label:'진로활동', limit:700},
+    {id:'subject',      label:'교과 세특(과목별)', limit:500},
+    {id:'personal',     label:'개인별 세특', limit:500},
+    {id:'behavior',      label:'행동특성 및 종합의견', limit:500},
+    {id:'reading',      label:'독서활동상황', limit:500},
+    {id:'freesem',      label:'자유학기활동', limit:500},
+    {id:'etc',          label:'기타 서술형', limit:500}
+  ];
+  var CAT_MAP = {};
+  CATEGORIES.forEach(function(c){ CAT_MAP[c.id] = c; });
+
+  var DEFAULT_LIMITS = {};
+  CATEGORIES.forEach(function(c){ if(c.limit) DEFAULT_LIMITS[c.id] = c.limit; });
+  var limits = JSON.parse(JSON.stringify(DEFAULT_LIMITS));
+
+  /* ---------------- Forbidden-content rule sets ---------------- */
+  var RULES = [
+    { id:'exam', severity:'error',
+      label:'공인어학·한자 시험 관련 표현',
+      re: /(TOEIC|TOEFL|TEPS|HSK|JPT|JLPT|DELF|DALF|ZD|TESTDAF|DSH|DSD|TORFL|DELE|한자능력검정|한자급수|상공회의소한자|실용한자|상무한검)/gi,
+      note:'교외 공인어학시험·한자시험 참여·성적은 어떤 항목에도 기재할 수 없습니다.'
+    },
+    { id:'contest', severity:'warn',
+      label:'대회·수상 관련 표현 가능성',
+      re: /(교외\s?대회|외부\s?대회|전국\s?대회|경시대회|콩쿠르|올림피아드|[가-힣A-Za-z]{1,8}대회|수상|입상)/g,
+      note:'대회 참가·수상 사실은 수상경력 항목(교내상만) 외 다른 서술형 항목에 기재할 수 없습니다. "수상 스포츠"처럼 무관한 단어일 수 있으니 문맥을 확인하세요.'
+    },
+    { id:'cert', severity:'error',
+      label:'자격증·인증시험 관련 표현',
+      re: /(자격증\s?취득|자격증\s?시험|인증시험|공인\s?인증)/g,
+      note:'자격증 명칭·취득 사실, 인증시험 참여·성적은 기재할 수 없습니다.'
+    },
+    { id:'paper', severity:'error',
+      label:'논문·학회 관련 표현',
+      re: /(논문|학회지|소논문|학술지\s?등재|학회\s?발표)/g,
+      note:'논문 투고·등재·학회 발표 사실은 기재할 수 없습니다.'
+    },
+    { id:'book', severity:'error',
+      label:'도서 출간 관련 표현',
+      re: /(도서\s?출간|책\s?출간|출판사\s?계약|저서\s?출간)/g,
+      note:'도서출간 사실은 기재할 수 없습니다.'
+    },
+    { id:'ip', severity:'error',
+      label:'지식재산권 관련 표현',
+      re: /(특허\s?출원|특허\s?등록|실용신안|상표\s?등록|디자인\s?등록)/g,
+      note:'특허·실용신안·상표·디자인 등 지식재산권 출원·등록 사실은 기재할 수 없습니다.'
+    },
+    { id:'abroad', severity:'error',
+      label:'해외 활동 관련 표현',
+      re: /(어학연수|해외\s?봉사|해외\s?캠프|해외\s?체험학습|해외\s?탐방)/g,
+      note:'어학연수·해외봉사 등 해외 활동 실적은 기재할 수 없습니다.'
+    },
+    { id:'scholarship', severity:'error',
+      label:'장학금 관련 표현',
+      re: /(장학생|장학금)/g,
+      note:'장학생·장학금 관련 내용은 기재할 수 없습니다.'
+    },
+    { id:'parent', severity:'warn',
+      label:'부모(친인척) 사회·경제적 지위 암시 가능 표현',
+      re: /(아버지|어머니|부모님|친인척)[^.]{0,12}(의사|변호사|판사|검사|교수|박사|대표이사|사장|회장|공무원|약사|기자|CEO)/g,
+      note:'부모(친인척)의 직업·직위·직장명이 드러나는 표현은 금지 대상입니다. 문맥을 확인하세요.'
+    },
+    { id:'univ', severity:'warn',
+      label:'특정 대학명·기관명·상호명 가능성',
+      re: /([가-힣A-Za-z]{1,8}(대학교|대학원))|([가-힣A-Za-z]{2,10}학원)/g,
+      note:'교육관련기관(교육부·교육청 및 소속기관)이 아닌 구체적 대학명·학원명·상호명은 기재할 수 없습니다. 오탐(전공 명칭 등)일 수 있으니 문맥을 확인하세요.'
+    },
+    { id:'specialchar', severity:'warn',
+      label:'특수문자·번호 기호 사용',
+      re: /(①|②|③|④|⑤|■|●|▶|☆|★|◆|→|\*{1,3}|#\d)/g,
+      note:'서술형 항목에는 특수문자·문단 구분 기호(번호) 사용을 지양합니다.'
+    }
+  ];
+
+  var ENDING_RE = /(다|요|죠|네요)\.\s*$/;
+
+  /* ---------------- Korean spacing / typo heuristics ---------------- */
+  function checkSpacingAndTypos(text){
+    var issues = [];
+    // 연속 공백
+    if(/[^\S\n]{2,}/.test(text)){
+      issues.push({severity:'warn', label:'연속된 공백', detail:'두 칸 이상 띄어쓴 부분이 있습니다.'});
+    }
+    // 문장부호 앞 공백
+    if(/\s+[.,]/.test(text)){
+      issues.push({severity:'warn', label:'문장부호 앞 공백', detail:'마침표·쉼표 앞에 불필요한 공백이 있습니다.'});
+    }
+    // 마침표 뒤 띄어쓰기 없이 문장이 붙음
+    var glued = text.match(/[.!?][가-힣]/g);
+    if(glued && glued.length){
+      issues.push({severity:'warn', label:'문장이 붙어 있음', detail:'마침표 뒤 띄어쓰기 여부를 확인하세요. (' + Array.from(new Set(glued)).slice(0,4).join(', ') + ')'});
+    }
+    // 3자 이상 반복 글자
+    var repeatChar = text.match(/([가-힣ㄱ-ㅎㅏ-ㅣ])\1{2,}/g);
+    if(repeatChar && repeatChar.length){
+      issues.push({severity:'warn', label:'반복된 글자(오타 의심)', detail:'"' + Array.from(new Set(repeatChar)).slice(0,4).join('", "') + '" 부분에 같은 글자가 반복됩니다.'});
+    }
+    // 동일 단어 연속 반복
+    var repeatWord = text.match(/(\S{2,})\s+\1(?=[\s,.]|$)/g);
+    if(repeatWord && repeatWord.length){
+      issues.push({severity:'warn', label:'단어 반복(오타 의심)', detail:'"' + Array.from(new Set(repeatWord)).slice(0,3).join('", "') + '" 부분이 연달아 반복됩니다.'});
+    }
+    return issues;
+  }
+
+  /* ---------------- Term-consistency (표기 통일) check ---------------- */
+  // NEIS text conventionally writes activity/event names right before a date in
+  // parentheses, e.g. "경제체험 한마당(2025.11.14.)". Different teachers/entries
+  // sometimes space the same event name differently ("경제체험한마당"). We collect
+  // every such phrase across the whole uploaded dataset and flag ones that show up
+  // in 2+ different spacings.
+  function extractTermCandidatesPos(text){
+    var out = [];
+    // phrase immediately before a date-in-parens, e.g. "경제체험 한마당(2025.11.14.)"
+    var reDate = /([가-힣A-Za-z0-9]+(?:[ ][가-힣A-Za-z0-9]+){0,2})\((?:19|20)\d{2}\.\d{1,2}\.\d{1,2}\.?\)/g;
+    var m;
+    while((m = reDate.exec(text)) !== null){
+      var phrase = m[1];
+      if(phrase.length >= 3 && phrase.length <= 20){ out.push({phrase:phrase, start:m.index, end:m.index+phrase.length}); }
+      if(reDate.lastIndex === m.index) reDate.lastIndex++;
+    }
+    // parenthesized labels not anchored to a date, e.g. club/program names:
+    // "(아침체인지 활동)", "(에코플랜트 : 자율동아리)" → keeps just the name, drops ": 유형"
+    var reParen = /\(([가-힣A-Za-z][가-힣A-Za-z0-9·]{1,14}(?:\s[가-힣A-Za-z0-9·]{1,14}){0,2})(?:\s*[:：]\s*[^()]{1,20})?\)/g;
+    var m2;
+    while((m2 = reParen.exec(text)) !== null){
+      var phrase2 = m2[1];
+      var start2 = m2.index + 1;
+      if(phrase2.length >= 2 && phrase2.length <= 20 && phrase2 !== '자유학기'){ out.push({phrase:phrase2, start:start2, end:start2+phrase2.length}); }
+      if(reParen.lastIndex === m2.index) reParen.lastIndex++;
+    }
+    return out;
+  }
+
+  function extractTermCandidates(text){
+    return extractTermCandidatesPos(text).map(function(o){ return o.phrase; });
+  }
+
+  function buildTermClusters(entries){
+    var termMap = {}; // normKey -> { variantText -> [{student,header}] }
+    entries.forEach(function(e){
+      extractTermCandidates(e.text).forEach(function(phrase){
+        var norm = phrase.replace(/\s+/g,'');
+        if(norm.length < 3) return;
+        if(!termMap[norm]) termMap[norm] = {};
+        if(!termMap[norm][phrase]) termMap[norm][phrase] = [];
+        termMap[norm][phrase].push({student:e.student, header:e.header});
+      });
+    });
+    var clusters = [];
+    Object.keys(termMap).forEach(function(norm){
+      var variants = Object.keys(termMap[norm]);
+      if(variants.length < 2) return;
+      var variantInfo = variants.map(function(v){
+        return {text:v, count: termMap[norm][v].length, examples: termMap[norm][v].slice(0,3)};
+      }).sort(function(a,b){ return b.count - a.count; });
+      clusters.push({norm:norm, variants:variantInfo, total: variants.reduce(function(s,v){ return s+termMap[norm][v].length; },0)});
+    });
+    clusters.sort(function(a,b){ return b.total - a.total; });
+    return clusters;
+  }
+
+  var termClusterLookup = {}; // exact variant phrase -> cluster (for inline flagging)
+  function indexTermClusters(clusters){
+    termClusterLookup = {};
+    clusters.forEach(function(cl){
+      cl.variants.forEach(function(v){
+        termClusterLookup[v.text] = cl;
+      });
+    });
+  }
+
+  /* ---------------- Sentence-level template reuse (부분 문구 복붙) ---------------- */
+  // Two entries can differ overall yet still share one verbatim sentence copy-pasted
+  // from a template — this catches that even when the whole-entry text differs.
+  function splitSentencesPos(text){
+    var out = [];
+    var re = /[^.!?]*[.!?]/g;
+    var m;
+    while((m = re.exec(text)) !== null){
+      var raw = m[0];
+      var leadLen = raw.length - raw.replace(/^\s+/, '').length;
+      var start = m.index + leadLen;
+      var trimmed = raw.trim();
+      if(trimmed.length >= 15){ out.push({sentence:trimmed, start:start, end:start+trimmed.length}); }
+      if(re.lastIndex === m.index) re.lastIndex++;
+    }
+    return out;
+  }
+
+  var sentenceClusters = {}; // "category::normSentence" -> {students:[...], count}
+  function buildSentenceClusters(entries){
+    var map = {};
+    entries.forEach(function(e){
+      splitSentencesPos(e.text).forEach(function(s){
+        var norm = s.sentence.replace(/\s+/g,'');
+        var key = e.category + '::' + norm;
+        if(!map[key]) map[key] = [];
+        map[key].push(e.student);
+      });
+    });
+    var clusters = {};
+    Object.keys(map).forEach(function(key){
+      var students = Array.from(new Set(map[key]));
+      if(students.length >= 2){ clusters[key] = {students: students, count: map[key].length}; }
+    });
+    return clusters;
+  }
+
+  /* ---------------- Safe spacing rule: '-적' suffix always attaches ---------------- */
+  var JEOK_RE = /([가-힣]{1,6})\s(적인|적으로|적이다|적이며|적이고|적임)(?=[\s,.)]|$)/g;
+  function checkJeokSuffix(text){
+    var issues = [];
+    var re = new RegExp(JEOK_RE.source, 'g');
+    var m;
+    var found = [];
+    while((m = re.exec(text)) !== null){
+      found.push(m[1] + ' ' + m[2] + ' → ' + m[1] + m[2]);
+      if(re.lastIndex === m.index) re.lastIndex++;
+    }
+    if(found.length){
+      issues.push({severity:'error', label:"붙여쓰기 오류('-적' 접미사)", detail: Array.from(new Set(found)).slice(0,5).join(', ') + ' — "적"은 앞말에 붙여 씁니다.'});
+    }
+    return issues;
+  }
+
+  /* ---------------- Safe spacing rule: 명사+하다/시키다/되다 파생동사 ---------------- */
+  // A curated whitelist of common Sino-Korean nouns that form a single compound verb
+  // with 하다/시키다/되다 (e.g. 조사하다, 향상시키다) — these must always attach, unlike
+  // ordinary "본용언 + 보조용언" constructions (e.g. "알게 됨") which are correctly spaced.
+  // We deliberately whitelist rather than guess, since guessing broadly (any noun +
+  // 하다) flagged huge numbers of grammatically correct sentences during testing.
+  var HADA_NOUNS = ['조사','향상','증진','발생','형성','완성','활용','참여','실천','실행','수행',
+    '습득','파악','분석','탐구','관찰','발표','제작','계획','준비','협력','소통','존중','배려','도전',
+    '성장','발전','개선','강화','확대','축소','유지','보존','보호','관리','운영','진행','추진','전달',
+    '공유','표현','인식','판단','결정','선택','평가','점검','확인','검토','수집','정리','요약','분류',
+    '비교','종합','창작','창출','도입','적용','반영','구현','실현','달성','수립','설계','기획','진술',
+    '서술','기술','묘사','예측','추정','증명','검증','측정','계산','추론','정의','규정','명시','표기',
+    '프로그래밍','코딩','디자인','모델링',
+    '해결','극복','완수','정착','안정','심화','구체화','체계화','시각화','활성화','최적화','표준화'];
+  var HADA_CONJ = '(하고|하며|하다|하지|하는|하기|하여|해서|한|할|함|했|했다|했음|했던|시킴|시켰|시키는|시키고|시킨|시킬|되어|되는|되고|된|될|됨)';
+  var HADA_RE_SRC = '(' + HADA_NOUNS.join('|') + ')\\s' + HADA_CONJ + '(?=[\\s,.)]|$)';
+  function checkHadaCompound(text){
+    var issues = [];
+    var re = new RegExp(HADA_RE_SRC, 'g');
+    var m; var found = [];
+    while((m = re.exec(text)) !== null){
+      found.push(m[1] + ' ' + m[2] + ' → ' + m[1] + m[2]);
+      if(re.lastIndex === m.index) re.lastIndex++;
+    }
+    if(found.length){
+      issues.push({severity:'error', label:'붙여쓰기 오류(명사+하다/시키다)', detail: Array.from(new Set(found)).slice(0,5).join(', ') + ' — 이 명사는 하다/시키다와 붙여 쓰는 한 단어입니다.'});
+    }
+    return issues;
+  }
+
+  /* ---------------- Safe spacing rule: '-고자' + 하다 보조용언은 항상 띄어 씀 ---------------- */
+  var GOJA_RE = /고자(하고|하며|하다|하지|하는|하기|하여|해서|한|할|함|했|했다|했음|했던)(?=[\s,.)]|$)/g;
+  function checkGojaSpacing(text){
+    var issues = [];
+    var re = new RegExp(GOJA_RE.source, 'g');
+    var m; var found = [];
+    while((m = re.exec(text)) !== null){
+      found.push('고자' + m[1] + ' → 고자 ' + m[1]);
+      if(re.lastIndex === m.index) re.lastIndex++;
+    }
+    if(found.length){
+      issues.push({severity:'error', label:'띄어쓰기 오류(-고자 하다)', detail: Array.from(new Set(found)).slice(0,5).join(', ') + ' — 연결어미 "-고자" 뒤의 보조용언 "하다"는 띄어 씁니다.'});
+    }
+    return issues;
+  }
+
+  /* ---------------- Safe spacing rule: known 합성동사(compound verbs) always attach ---------------- */
+  // e.g. "파고들다" (to delve into) is one word — "파고 드는" should be "파고드는".
+  // Kept to a short, high-confidence list rather than guessing generally.
+  var COMPOUND_VERBS = [
+    {a:'파고', b:'(들[가-힣]*|드는|드니|듦)'}, {a:'뛰어', b:'(들[가-힣]*|드는|드니|듦)'},
+    {a:'끌어', b:'올리[가-힣]*'}, {a:'몰아', b:'붙이[가-힣]*'},
+    {a:'밀어', b:'붙이[가-힣]*'}, {a:'갈고', b:'닦[가-힣]*'},
+    {a:'뛰어', b:'넘[가-힣]*'}, {a:'헤쳐', b:'나가[가-힣]*'}
+  ];
+  function checkCompoundVerbSpacing(text){
+    var issues = [];
+    var found = [];
+    COMPOUND_VERBS.forEach(function(cv){
+      var re = new RegExp('(' + cv.a + ')\\s(' + cv.b + ')', 'g');
+      var m;
+      while((m = re.exec(text)) !== null){
+        found.push(m[1] + ' ' + m[2] + ' → ' + m[1] + m[2]);
+        if(re.lastIndex === m.index) re.lastIndex++;
+      }
+    });
+    if(found.length){
+      issues.push({severity:'error', label:'붙여쓰기 오류(합성동사)', detail: Array.from(new Set(found)).slice(0,5).join(', ') + ' — 한 단어로 붙여 쓰는 합성동사입니다.'});
+    }
+    return issues;
+  }
+
+  /* ---------------- Safe spacing rule: missing space before a dependent noun ---------------- */
+  // "-을/-ㄹ/-은/-는/-던 것/때/줄/만큼/뿐" must have a space before the dependent noun.
+  // Restricted to cases where the preceding syllable is unambiguously a verb ending
+  // (either the bare syllable 을/은/는/던, or a syllable with a ㄹ batchim) to avoid
+  // false hits on ordinary nouns like "실수", "필수" that happen to end the same way.
+  // A short exclusion list further guards against lexicalized compounds (날것/들것/물때 등).
+  var DEP_NOUNS = ['것', '때', '줄', '만큼', '뿐'];
+  var DEP_EXCLUDE = {'날것':1,'들것':1,'새것':1,'헌것':1,'물때':1,'제때':1};
+  function jongseongIndex(ch){
+    var code = ch.charCodeAt(0) - 0xAC00;
+    if(code < 0 || code > 11171) return -1;
+    return code % 28;
+  }
+  function checkDependentNounSpacing(text){
+    var issues = [];
+    var found = [];
+    DEP_NOUNS.forEach(function(dep){
+      var re = new RegExp('([가-힣])(' + dep + ')', 'g');
+      var m;
+      while((m = re.exec(text)) !== null){
+        var prevChar = m[1];
+        var jIdx = jongseongIndex(prevChar);
+        var isEomi = (prevChar==='을'||prevChar==='은'||prevChar==='는'||prevChar==='던') || jIdx===8;
+        var combo = prevChar + dep;
+        var afterChar = text[m.index + m[0].length] || '';
+        if(isEomi && !DEP_EXCLUDE[combo] && !(dep==='때' && afterChar==='문')){
+          found.push(combo + ' → ' + prevChar + ' ' + dep);
+        }
+        if(re.lastIndex === m.index) re.lastIndex++;
+      }
+    });
+    if(found.length){
+      issues.push({severity:'error', label:'띄어쓰기 오류(의존명사)', detail: Array.from(new Set(found)).slice(0,5).join(', ') + ' — "것/때/줄/만큼/뿐" 앞은 띄어 씁니다.'});
+    }
+    return issues;
+  }
+
+
+  var limitsBuilt = false;
+  var uploadedFiles = [];      // {name, status:'ok'|'fail', type, entries, error}
+  var pendingEntries = [];     // accumulated entries across all NEIS-recognized files
+  var checkResults = [];
+  var termClusters = [];
+  // single-file table-mode fallback state
+  var tableMode = false;
+  var workbook = null, currentRows = [], headers = [];
+  var columnMap = {};
+  var idColumnName = null;
+
+  function stripSp(s){ return String(s == null ? '' : s).replace(/\s+/g,''); }
+
+  function gradeLabel(g){
+    if(g === '' || g == null) return '';
+    var n = parseFloat(g);
+    if(!isNaN(n)) return n + '학년';
+    return String(g);
+  }
+  function gradeNum(g){
+    var n = parseFloat(g);
+    return isNaN(n) ? null : n;
+  }
+
+  /* ---------------- NEIS block detection ---------------- */
+  function findIdTripleRows(aoa){
+    var rows = [];
+    for(var r=0; r<aoa.length; r++){
+      var joined = aoa[r].map(stripSp);
+      var idxNo = joined.findIndex(function(c){ return c === '번호'; });
+      var idxName = joined.findIndex(function(c){ return c === '성명'; });
+      var idxGrade = joined.findIndex(function(c){ return c === '학년'; });
+      if(idxNo>=0 && idxName>=0 && idxGrade>=0 && idxName>idxNo && idxGrade>idxName){
+        rows.push({r:r, idxNo:idxNo, idxName:idxName, idxGrade:idxGrade});
+      }
+    }
+    return rows;
+  }
+
+  function detectNeisBlock(aoa){
+    var idRows = findIdTripleRows(aoa);
+    if(!idRows.length) return null;
+    var first = idRows[0];
+    var row = aoa[first.r];
+    var hintIdx = -1, hintText = '';
+    for(var c = first.idxGrade+1; c<row.length; c++){
+      if(stripSp(row[c]) !== ''){ hintIdx = c; hintText = stripSp(row[c]); break; }
+    }
+    var block = {idRows: idRows, idxNo:first.idxNo, idxName:first.idxName, idxGrade:first.idxGrade};
+    if(/창의적체험활동/.test(hintText)){
+      var subRow = (aoa[first.r+1] || []).map(stripSp);
+      var idxArea = subRow.findIndex(function(c){ return c === '영역'; });
+      var idxHours = subRow.findIndex(function(c){ return c === '시간'; });
+      var idxText = subRow.findIndex(function(c){ return c === '특기사항'; });
+      if(idxArea<0 || idxText<0) return null;
+      block.type = 'activity';
+      block.idxArea = idxArea; block.idxHours = idxHours; block.idxText = idxText;
+      block.subHeaderOffset = 2;
+    } else if(/종합의견/.test(hintText)){
+      block.type = 'behavior'; block.idxText = hintIdx; block.subHeaderOffset = 1;
+    } else if(/특기사항/.test(hintText)){
+      block.type = 'subject'; block.idxText = hintIdx; block.subHeaderOffset = 1;
+    } else {
+      return null;
+    }
+    return block;
+  }
+
+  function buildSkipSets(aoa, block){
+    var headerRowSet = {};
+    block.idRows.forEach(function(h){
+      headerRowSet[h.r] = true;
+      if(block.type === 'activity') headerRowSet[h.r+1] = true;
+    });
+    var sectionTitleRows = {};
+    block.idRows.forEach(function(h){
+      for(var back=1; back<=3; back++){
+        var rr = h.r - back;
+        if(rr<0) break;
+        var row = aoa[rr];
+        var nonEmpty = row.filter(function(c){ return stripSp(c) !== ''; });
+        if(nonEmpty.length === 1){ sectionTitleRows[rr] = true; break; }
+        if(nonEmpty.length > 1) break;
+      }
+    });
+    var footerRows = {};
+    for(var r=0;r<aoa.length;r++){
+      if(aoa[r].some(function(c){ return stripSp(c) === '/'; })){ footerRows[r] = true; }
+    }
+    return {headerRowSet:headerRowSet, sectionTitleRows:sectionTitleRows, footerRows:footerRows};
+  }
+
+  // subject / behavior: merge consecutive rows sharing (student, grade) since NEIS
+  // pagination breaks a block mid-sentence, not at a natural boundary.
+  function parseFlatBlock(aoa, block, skip){
+    var buffers = {};
+    var curStudent = null, curGrade = null;
+    for(var r=0; r<aoa.length; r++){
+      if(skip.headerRowSet[r] || skip.sectionTitleRows[r] || skip.footerRows[r]) continue;
+      var row = aoa[r];
+      var nameVal = row[block.idxName];
+      var gradeVal = row[block.idxGrade];
+      var textVal = row[block.idxText];
+      if(stripSp(nameVal) !== ''){
+        curStudent = String(nameVal).trim();
+        if(buffers[curStudent] === undefined) buffers[curStudent] = [];
+      }
+      if(stripSp(gradeVal) !== ''){ curGrade = gradeVal; }
+      if(stripSp(textVal) === '' || !curStudent) continue;
+      var key = curStudent + '::' + curGrade;
+      var arr = buffers[curStudent];
+      var last = arr[arr.length-1];
+      if(last && last._key === key){ last.text += String(textVal); }
+      else { arr.push({grade:curGrade, text:String(textVal), _key:key}); }
+    }
+    return buffers;
+  }
+
+  // activity (창체): each row's 영역 column starts/continues an entry, keyed by
+  // (student, grade, area); 진로활동's "희망분야" label row carries its value in
+  // a separate far-right cell.
+  function parseActivityBlock(aoa, block, skip){
+    var buffers = {};
+    var curStudent = null, curGrade = null, curArea = null;
+    function push(text, glueNL){
+      if(!curStudent || !text) return;
+      if(buffers[curStudent] === undefined) buffers[curStudent] = [];
+      var key = curStudent + '::' + curGrade + '::' + curArea;
+      var arr = buffers[curStudent];
+      var last = arr[arr.length-1];
+      if(last && last._key === key){ last.text += (glueNL ? '\n' : '') + text; }
+      else { arr.push({grade:curGrade, area:curArea, text:text, _key:key}); }
+    }
+    for(var r=0; r<aoa.length; r++){
+      if(skip.headerRowSet[r] || skip.sectionTitleRows[r] || skip.footerRows[r]) continue;
+      var row = aoa[r];
+      var nameVal = row[block.idxName];
+      var gradeVal = row[block.idxGrade];
+      var areaVal = row[block.idxArea];
+      var textVal = row[block.idxText];
+      if(stripSp(nameVal) !== ''){
+        curStudent = String(nameVal).trim();
+        if(buffers[curStudent] === undefined) buffers[curStudent] = [];
+      }
+      if(stripSp(gradeVal) !== ''){ curGrade = gradeVal; }
+      if(stripSp(areaVal) !== ''){ curArea = String(areaVal).trim(); }
+      if(!curStudent || !curArea) continue;
+
+      if(curArea === '진로활동' && stripSp(textVal) === '희망분야'){
+        var valCell = '';
+        for(var c = block.idxText+1; c<row.length; c++){
+          if(stripSp(row[c]) !== ''){ valCell = String(row[c]).trim(); break; }
+        }
+        push('[희망분야: ' + (valCell || '미정') + ']', true);
+        continue;
+      }
+      if(stripSp(textVal) === '') continue;
+      push(String(textVal), false);
+    }
+    return buffers;
+  }
+
+  function splitSubjectParagraphs(text){
+    var paras = text.split(/\n\s*\n+/).map(function(s){ return s.trim(); }).filter(Boolean);
+    var out = [];
+    var re = /^(\(\d\s?학기\)\s*)?([^\n:：()]{1,14})(\s*\([^)]{0,20}\))?\s*[:：]\s*([\s\S]+)$/;
+    var markerRe = /(?=\(\d\s?학기\)\s*[^\n:：()]{1,14}\s*[:：])/g;
+    paras.forEach(function(p){
+      var subParas = p.split(markerRe).map(function(s){ return s.trim(); }).filter(Boolean);
+      if(!subParas.length) subParas = [p];
+      subParas.forEach(function(sp){
+        var m = sp.match(re);
+        if(m){
+          var label = (m[1] ? m[1].trim() + ' ' : '') + m[2].trim() + (m[3] ? m[3].trim() : '');
+          out.push({subject: label, text: m[4].trim()});
+        } else {
+          out.push({subject:'(미분류)', text:sp});
+        }
+      });
+    });
+    return out;
+  }
+
+  var AREA_TO_CATEGORY = {
+    '자율활동':'auto', '자율·자치활동':'auto', '자율‧자치활동':'auto',
+    '동아리활동':'club',
+    '진로활동':'career'
+  };
+
+  function parseFileToEntries(aoa, sourceName){
+    var block = detectNeisBlock(aoa);
+    if(!block) return null;
+    var skip = buildSkipSets(aoa, block);
+    var entries = [];
+
+    if(block.type === 'subject'){
+      var buffers = parseFlatBlock(aoa, block, skip);
+      Object.keys(buffers).forEach(function(student){
+        buffers[student].forEach(function(chunk){
+          splitSubjectParagraphs(chunk.text).forEach(function(s){
+            if(!s.text) return;
+            entries.push({
+              student: student, source: sourceName,
+              header: (gradeLabel(chunk.grade) ? gradeLabel(chunk.grade) + ' · ' : '') + s.subject,
+              category: 'subject', categoryLabel: '교과 세특',
+              grade: gradeNum(chunk.grade), text: s.text
+            });
+          });
+        });
+      });
+      return {type:'subject', typeLabel:'세특', entries:entries};
+    }
+
+    if(block.type === 'behavior'){
+      var buffers2 = parseFlatBlock(aoa, block, skip);
+      Object.keys(buffers2).forEach(function(student){
+        buffers2[student].forEach(function(chunk){
+          if(!chunk.text) return;
+          entries.push({
+            student: student, source: sourceName,
+            header: gradeLabel(chunk.grade) + ' · 행동특성 및 종합의견',
+            category: 'behavior', categoryLabel: '행동특성 및 종합의견',
+            grade: gradeNum(chunk.grade), text: chunk.text
+          });
+        });
+      });
+      return {type:'behavior', typeLabel:'행발', entries:entries};
+    }
+
+    if(block.type === 'activity'){
+      var buffers3 = parseActivityBlock(aoa, block, skip);
+      Object.keys(buffers3).forEach(function(student){
+        buffers3[student].forEach(function(chunk){
+          if(!chunk.text) return;
+          var catId = AREA_TO_CATEGORY[chunk.area] || 'etc';
+          entries.push({
+            student: student, source: sourceName,
+            header: (gradeLabel(chunk.grade) ? gradeLabel(chunk.grade) + ' · ' : '') + chunk.area,
+            category: catId, categoryLabel: CAT_MAP[catId] ? CAT_MAP[catId].label : chunk.area,
+            grade: gradeNum(chunk.grade), text: chunk.text
+          });
+        });
+      });
+      return {type:'activity', typeLabel:'창체', entries:entries};
+    }
+    return null;
+  }
+
+  /* ---------------- File handling (multi-file) ---------------- */
+  var dropZone = document.getElementById('dropZone');
+  var fileInput = document.getElementById('fileInput');
+  dropZone.addEventListener('click', function(){ fileInput.click(); });
+  dropZone.addEventListener('dragover', function(e){ e.preventDefault(); dropZone.classList.add('drag'); });
+  dropZone.addEventListener('dragleave', function(){ dropZone.classList.remove('drag'); });
+  dropZone.addEventListener('drop', function(e){
+    e.preventDefault(); dropZone.classList.remove('drag');
+    if(e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', function(e){
+    if(e.target.files.length) handleFiles(e.target.files);
+  });
+
+  function handleFiles(fileListObj){
+    var files = Array.prototype.slice.call(fileListObj);
+    files.forEach(readOneFile);
+  }
+
+  function readOneFile(file){
+    var entry = {name:file.name, status:'loading', type:null, count:0};
+    uploadedFiles.push(entry);
+    renderFileList();
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        var data = new Uint8Array(e.target.result);
+        var wb = XLSX.read(data, {type:'array'});
+        var found = null;
+        for(var i=0;i<wb.SheetNames.length && !found;i++){
+          var aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[i]], {header:1, defval:''});
+          var res = parseFileToEntries(aoa, file.name);
+          if(res && res.entries.length) found = res;
+        }
+        if(found){
+          entry.status = 'ok';
+          entry.type = found.typeLabel;
+          entry.count = found.entries.length;
+          pendingEntries = pendingEntries.concat(found.entries);
+          document.getElementById('limitSection').hidden = false;
+          document.getElementById('runSection').hidden = false;
+          if(!limitsBuilt){ buildLimitInputs(); limitsBuilt = true; }
+        } else if(uploadedFiles.filter(function(f){return f.status!=='loading';}).length === 0 && files_isSingle()){
+          // single unrecognized file → fall back to manual table mode
+          entry.status = 'table';
+          enterTableModeFromWorkbook(wb, file.name);
+        } else {
+          entry.status = 'fail';
+        }
+      }catch(err){
+        entry.status = 'fail';
+        entry.error = err.message;
+      }
+      renderFileList();
+    };
+    reader.onerror = function(){ entry.status='fail'; renderFileList(); };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function files_isSingle(){ return uploadedFiles.length === 1; }
+
+  function renderFileList(){
+    var el = document.getElementById('fileList');
+    el.innerHTML = uploadedFiles.map(function(f){
+      var badge;
+      if(f.status === 'loading') badge = '<span class="fbadge">읽는 중…</span>';
+      else if(f.status === 'ok') badge = '<span class="fbadge">' + f.type + '</span>';
+      else if(f.status === 'table') badge = '<span class="fbadge">표 형식</span>';
+      else badge = '<span class="fbadge fail">인식 실패</span>';
+      var count = f.status==='ok' ? '<span class="fcount">' + f.count + '건</span>' : '';
+      return '<div class="filerow"><span class="fname" title="'+esc(f.name)+'">'+esc(f.name)+'</span>'+badge+count+'</div>';
+    }).join('');
+  }
+
+  /* ---------------- Table-mode fallback (single non-NEIS file) ---------------- */
+  function enterTableModeFromWorkbook(wb, name){
+    tableMode = true;
+    workbook = wb;
+    var ws = wb.Sheets[wb.SheetNames[0]];
+    var json = XLSX.utils.sheet_to_json(ws, {defval:''});
+    if(!json.length) return;
+    currentRows = json;
+    headers = Object.keys(json[0]);
+    buildMappingUI();
+    document.getElementById('mapSection').hidden = false;
+    document.getElementById('limitSection').hidden = false;
+    document.getElementById('runSection').hidden = false;
+    if(!limitsBuilt){ buildLimitInputs(); limitsBuilt = true; }
+  }
+
+  function buildMappingUI(){
+    var idSel = document.getElementById('idColumn');
+    idSel.innerHTML = '';
+    headers.forEach(function(h){
+      var opt = document.createElement('option');
+      opt.value = h; opt.textContent = h;
+      idSel.appendChild(opt);
+    });
+    var guess = headers.find(function(h){ return /이름|성명|학생/.test(h); }) || headers[0];
+    idSel.value = guess;
+
+    var mapList = document.getElementById('mapList');
+    mapList.innerHTML = '';
+    columnMap = {};
+    headers.forEach(function(h){
+      var row = document.createElement('div');
+      row.className = 'maprow';
+      var nameSpan = document.createElement('div');
+      nameSpan.className = 'colname';
+      nameSpan.textContent = h;
+      nameSpan.title = h;
+      var sel = document.createElement('select');
+      CATEGORIES.forEach(function(c){
+        var opt = document.createElement('option');
+        opt.value = c.id; opt.textContent = c.label;
+        sel.appendChild(opt);
+      });
+      sel.value = guessCategory(h);
+      columnMap[h] = sel.value;
+      sel.addEventListener('change', function(){ columnMap[h] = sel.value; });
+      row.appendChild(nameSpan);
+      row.appendChild(sel);
+      mapList.appendChild(row);
+    });
+  }
+
+  function guessCategory(header){
+    var h = header.replace(/\s/g,'');
+    if(/자율|자치/.test(h)) return 'auto';
+    if(/동아리/.test(h)) return 'club';
+    if(/진로/.test(h)) return 'career';
+    if(/개인.*세특|개인별/.test(h)) return 'personal';
+    if(/세특|세부능력/.test(h)) return 'subject';
+    if(/행동특성|종합의견/.test(h)) return 'behavior';
+    if(/독서/.test(h)) return 'reading';
+    if(/자유학기/.test(h)) return 'freesem';
+    return 'skip';
+  }
+
+  function collectEntriesTable(){
+    var entries = [];
+    var textCols = headers.filter(function(h){ return columnMap[h] && columnMap[h] !== 'skip'; });
+    if(!textCols.length) return null;
+    currentRows.forEach(function(row, idx){
+      var studentName = String(row[idColumnName] || ('행 ' + (idx+2))).trim();
+      textCols.forEach(function(h){
+        var text = String(row[h] || '').trim();
+        if(!text) return;
+        entries.push({
+          student: studentName, source:'table',
+          header: h, category: columnMap[h], categoryLabel: CAT_MAP[columnMap[h]].label,
+          grade: null, text: text
+        });
+      });
+    });
+    return entries;
+  }
+
+  function buildLimitInputs(){
+    var grid = document.getElementById('limitGrid');
+    grid.innerHTML = '';
+    CATEGORIES.forEach(function(c){
+      if(!c.limit) return;
+      var lbl = document.createElement('label');
+      lbl.textContent = c.label;
+      var inp = document.createElement('input');
+      inp.type = 'number';
+      inp.value = limits[c.id];
+      inp.addEventListener('input', function(){ limits[c.id] = parseInt(inp.value,10) || 0; });
+      grid.appendChild(lbl);
+      grid.appendChild(inp);
+    });
+  }
+
+  /* ---------------- Run check ---------------- */
+  document.getElementById('runBtn').addEventListener('click', runCheck);
+
+  function countChars(text){
+    return (text || '').replace(/\r?\n/g,'').length;
+  }
+
+  function runCheck(){
+    checkResults = [];
+    var entries;
+    if(tableMode){
+      idColumnName = document.getElementById('idColumn').value;
+      entries = collectEntriesTable();
+      if(!entries || !entries.length){ alert('점검할 서술형 항목 열을 최소 1개 이상 지정하세요.'); return; }
+    } else {
+      entries = pendingEntries;
+      if(!entries.length){ alert('점검할 문구가 없습니다. 파일을 업로드하세요.'); return; }
+    }
+
+    var skipLowerGrades = document.getElementById('skipLowerGrades').checked;
+
+    var dupMap = {};
+    entries.forEach(function(e){
+      var norm = e.text.replace(/\s+/g,'');
+      var key = e.category + '::' + norm;
+      if(!dupMap[key]) dupMap[key] = [];
+      dupMap[key].push(e);
+    });
+
+    termClusters = buildTermClusters(entries);
+    indexTermClusters(termClusters);
+
+    entries.forEach(function(e){
+      var issues = [];
+      var charCount = countChars(e.text);
+      var limit = limits[e.category];
+      var applyCharLimit = !(skipLowerGrades && e.grade != null && e.grade < 3);
+      var over = applyCharLimit && limit && charCount > limit;
+      if(over){
+        issues.push({severity:'error', label:'글자수 초과', detail: charCount + '자 / 상한 ' + limit + '자 (' + (charCount-limit) + '자 초과)'});
+      }
+      RULES.forEach(function(rule){
+        rule.re.lastIndex = 0;
+        var m; var found = [];
+        while((m = rule.re.exec(e.text)) !== null){
+          found.push(m[0]);
+          if(rule.re.lastIndex === m.index) rule.re.lastIndex++;
+        }
+        if(found.length){
+          issues.push({severity: rule.severity, label: rule.label, detail: rule.note + ' (검출: "' + Array.from(new Set(found)).slice(0,5).join('", "') + '")', ruleId: rule.id});
+        }
+      });
+      var lines = e.text.split(/(?<=\.)\s+/).filter(Boolean);
+      var badEndings = lines.filter(function(s){ return ENDING_RE.test(s.trim()); });
+      if(badEndings.length){
+        issues.push({severity:'warn', label:'문장 종결 형식', detail:'서술형 항목은 명사형 어미(~함/~음/~임 등)로 종결하는 것을 원칙으로 합니다. 구어체 종결(다./요.) 문장이 ' + badEndings.length + '건 있습니다.'});
+      }
+      if(e.student && e.student.length >= 2 && e.text.indexOf(e.student) !== -1){
+        issues.push({severity:'warn', label:'본인 이름 언급', detail:'서술형 문구 안에 학생 본인의 이름이 그대로 등장합니다. 익명 서술 원칙을 확인하세요.'});
+      }
+      if(charCount >= 20){
+        var norm = e.text.replace(/\s+/g,'');
+        var key = e.category + '::' + norm;
+        var group = dupMap[key];
+        if(group.length > 1){
+          var others = group.filter(function(g){ return g.student !== e.student; }).map(function(g){ return g.student; });
+          if(others.length){
+            issues.push({severity:'warn', label:'동일 문구 중복(복붙 의심)', detail: Array.from(new Set(others)).slice(0,6).join(', ') + ' 학생과 같은 항목에 완전히 동일한 문구가 있습니다.'});
+          }
+        }
+      }
+      issues = issues.concat(checkSpacingAndTypos(e.text));
+      issues = issues.concat(checkJeokSuffix(e.text));
+      issues = issues.concat(checkHadaCompound(e.text));
+      issues = issues.concat(checkGojaSpacing(e.text));
+      issues = issues.concat(checkCompoundVerbSpacing(e.text));
+      issues = issues.concat(checkDependentNounSpacing(e.text));
+
+      extractTermCandidates(e.text).forEach(function(phrase){
+        var cl = termClusterLookup[phrase];
+        if(cl && cl.variants[0].text !== phrase){
+          var majority = cl.variants[0];
+          var others = cl.variants.filter(function(v){ return v.text !== phrase && v.text !== majority.text; });
+          var otherText = others.length ? (', ' + others.map(function(v){ return '"'+v.text+'"('+v.count+'건)'; }).join(', ')) : '';
+          issues.push({
+            severity:'error', label:'표기 통일 필요',
+            detail:'"' + phrase + '" → 가장 많이 쓰인 "' + majority.text + '"(' + majority.count + '건)' + otherText + ' 중 하나로 통일하세요.'
+          });
+        }
+      });
+
+      checkResults.push({
+        student: e.student, category: e.category, categoryLabel: e.categoryLabel,
+        header: e.header, text: e.text, charCount: charCount, limit: applyCharLimit ? limit : null, over: over,
+        grade: e.grade, source: e.source, issues: issues
+      });
+    });
+
+    renderResults();
+  }
+
+  /* ---------------- Rendering ---------------- */
+  function showTermOn(){
+    var el = document.getElementById('showTermIssues');
+    return el ? el.checked : false;
+  }
+  function visibleIssues(r){
+    if(showTermOn()) return r.issues;
+    return r.issues.filter(function(i){ return i.label !== '표기 통일 필요'; });
+  }
+
+  function renderResults(){
+    document.getElementById('emptyState').hidden = true;
+    document.getElementById('resultArea').hidden = false;
+
+    var totalEntries = checkResults.length;
+    var errCount = 0, warnCount = 0, cleanCount = 0;
+    checkResults.forEach(function(r){
+      var issues = visibleIssues(r);
+      var hasErr = issues.some(function(i){ return i.severity === 'error'; });
+      var hasWarn = issues.some(function(i){ return i.severity === 'warn'; });
+      if(hasErr) errCount++;
+      else if(hasWarn) warnCount++;
+      else cleanCount++;
+    });
+    var summaryEl = document.getElementById('summaryCards');
+    summaryEl.innerHTML =
+      cardHtml(totalEntries, '점검한 문구', '') +
+      cardHtml(errCount, '오류 있는 문구', 'err') +
+      cardHtml(warnCount, '주의 필요 문구', 'warn') +
+      cardHtml(cleanCount, '문제 없음', 'ok');
+
+    var studentSel = document.getElementById('filterStudent');
+    var students = Array.from(new Set(checkResults.map(function(r){ return r.student; })));
+    studentSel.innerHTML = '<option value="">전체 학생</option>' + students.map(function(s){ return '<option value="'+esc(s)+'">'+esc(s)+'</option>'; }).join('');
+
+    var catSel = document.getElementById('filterCategory');
+    var cats = Array.from(new Set(checkResults.map(function(r){ return r.category; })));
+    catSel.innerHTML = '<option value="">전체 항목</option>' + cats.map(function(c){ return '<option value="'+c+'">'+(CAT_MAP[c]?CAT_MAP[c].label:c)+'</option>'; }).join('');
+
+    renderTermPanel();
+    renderList();
+  }
+
+  function renderTermPanel(){
+    var el = document.getElementById('termPanel');
+    if(!el) return;
+    if(!showTermOn() || !termClusters.length){ el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    var rows = termClusters.map(function(cl){
+      var variantsHtml = cl.variants.map(function(v, idx){
+        var cls = idx === 0 ? 'termvariant keep' : 'termvariant change';
+        var tag = idx === 0 ? '' : ' →';
+        return '<span class="' + cls + '">"' + esc(v.text) + '" <b>' + v.count + '건</b>' + tag + '</span>';
+      }).join(' ');
+      return '<div class="termrow">' + variantsHtml + '</div>';
+    }).join('');
+    el.innerHTML = '<div class="termpanel-head">표기 통일 확인 필요 (' + termClusters.length + '건) — 굵게 표시된 것이 가장 많이 쓰인 표기, 빨간색이 바꿔야 할 표기입니다</div>' + rows;
+  }
+
+  function cardHtml(num, label, cls){
+    return '<div class="sumcard ' + cls + '"><div class="num">' + num + '</div><div class="lbl">' + label + '</div></div>';
+  }
+
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  ['filterStudent','filterCategory','filterSeverity','hideClean'].forEach(function(id){
+    document.getElementById(id).addEventListener('change', renderList);
+  });
+  document.getElementById('showTermIssues').addEventListener('change', renderResults);
+
+  function renderList(){
+    var fStudent = document.getElementById('filterStudent').value;
+    var fCategory = document.getElementById('filterCategory').value;
+    var fSeverity = document.getElementById('filterSeverity').value;
+    var hideClean = document.getElementById('hideClean').checked;
+
+    var filtered = checkResults.filter(function(r){
+      var issues = visibleIssues(r);
+      if(fStudent && r.student !== fStudent) return false;
+      if(fCategory && r.category !== fCategory) return false;
+      if(fSeverity === 'error' && !issues.some(function(i){return i.severity==='error';})) return false;
+      if(fSeverity === 'warn' && !issues.some(function(i){return i.severity==='warn';})) return false;
+      if(hideClean && issues.length === 0) return false;
+      return true;
+    });
+
+    var order = [];
+    var byStudent = {};
+    filtered.forEach(function(r){
+      if(!byStudent[r.student]){ byStudent[r.student] = []; order.push(r.student); }
+      byStudent[r.student].push(r);
+    });
+
+    var html = '';
+    if(!order.length){
+      html = '<div class="empty" style="margin-top:20px;"><div class="big">조건에 맞는 결과가 없습니다</div></div>';
+    }
+    order.forEach(function(student){
+      var rows = byStudent[student];
+      var eCount = rows.filter(function(r){ return visibleIssues(r).some(function(i){return i.severity==='error';}); }).length;
+      var wCount = rows.filter(function(r){ var iss=visibleIssues(r); return !iss.some(function(i){return i.severity==='error';}) && iss.some(function(i){return i.severity==='warn';}); }).length;
+      html += '<div class="student-block">';
+      html += '<div class="student-head"><span class="name">' + esc(student) + '</span>' +
+              '<span class="meta">' + rows.length + '개 문구 점검</span>' +
+              '<span class="counts">' +
+                (eCount ? '<span class="e">오류 ' + eCount + '</span>' : '') +
+                (wCount ? '<span class="w">주의 ' + wCount + '</span>' : '') +
+                (!eCount && !wCount ? '<span class="clean">문제 없음</span>' : '') +
+              '</span></div>';
+      rows.forEach(function(r){ html += entryHtml(r); });
+      html += '</div>';
+    });
+
+    document.getElementById('resultList').innerHTML = html;
+  }
+
+  function entryHtml(r){
+    var issues = visibleIssues(r);
+    var hasErr = issues.some(function(i){ return i.severity === 'error'; });
+    var hasWarn = issues.some(function(i){ return i.severity === 'warn'; });
+    var cls = hasErr ? 'has-error' : (hasWarn ? 'has-warn' : '');
+    var highlighted = highlightText(r.text, r.category, r.student);
+    var charCls = r.over ? 'over' : '';
+    var charLabel = r.charCount + '자' + (r.limit ? (' / 상한 ' + r.limit + '자') : '');
+
+    var issuesHtml = '';
+    if(issues.length){
+      issuesHtml = '<div class="issues">' + issues.map(function(i){
+        return '<div class="issue ' + i.severity + '"><span class="dot"></span><span class="txt"><b>' + esc(i.label) + '</b> — <span class="detail">' + esc(i.detail) + '</span></span></div>';
+      }).join('') + '</div>';
+    } else {
+      issuesHtml = '<div class="issues"><span class="clean-note">✓ 자동 점검 항목에서 문제가 발견되지 않았습니다.</span></div>';
+    }
+
+    return '<div class="entry ' + cls + '">' +
+      '<div class="entry-head"><span class="tag">' + esc(r.categoryLabel) + '</span>' +
+      '<span class="tag" style="background:transparent;color:#a89f8c;padding:0;">' + esc(r.header) + '</span>' +
+      '<span class="charcount ' + charCls + '">' + charLabel + '</span></div>' +
+      '<div class="entry-text">' + highlighted + '</div>' +
+      issuesHtml +
+      '</div>';
+  }
+
+  function highlightText(text, category, student){
+    var spans = [];
+    RULES.forEach(function(rule){
+      rule.re.lastIndex = 0;
+      var m;
+      while((m = rule.re.exec(text)) !== null){
+        spans.push({start:m.index, end:m.index + m[0].length, severity: rule.severity});
+        if(rule.re.lastIndex === m.index) rule.re.lastIndex++;
+      }
+    });
+    var spaceRe = /[^\S\n]{2,}/g;
+    var sm;
+    while((sm = spaceRe.exec(text)) !== null){
+      spans.push({start:sm.index, end:sm.index + sm[0].length, severity:'warn'});
+      if(spaceRe.lastIndex === sm.index) spaceRe.lastIndex++;
+    }
+    if(showTermOn()){
+      extractTermCandidatesPos(text).forEach(function(t){
+        var cl = termClusterLookup[t.phrase];
+        if(cl && cl.variants[0].text !== t.phrase){
+          spans.push({start:t.start, end:t.end, severity:'error'});
+        }
+      });
+    }
+    var jeokRe = new RegExp(JEOK_RE.source, 'g');
+    var jm;
+    while((jm = jeokRe.exec(text)) !== null){
+      spans.push({start:jm.index, end:jm.index + jm[0].length, severity:'error'});
+      if(jeokRe.lastIndex === jm.index) jeokRe.lastIndex++;
+    }
+    var hadaRe = new RegExp(HADA_RE_SRC, 'g');
+    var hm;
+    while((hm = hadaRe.exec(text)) !== null){
+      spans.push({start:hm.index, end:hm.index + hm[0].length, severity:'error'});
+      if(hadaRe.lastIndex === hm.index) hadaRe.lastIndex++;
+    }
+    var gojaRe = new RegExp(GOJA_RE.source, 'g');
+    var gm;
+    while((gm = gojaRe.exec(text)) !== null){
+      spans.push({start:gm.index, end:gm.index + gm[0].length, severity:'error'});
+      if(gojaRe.lastIndex === gm.index) gojaRe.lastIndex++;
+    }
+    COMPOUND_VERBS.forEach(function(cv){
+      var cvRe = new RegExp('(' + cv.a + ')\\s(' + cv.b + ')', 'g');
+      var cm;
+      while((cm = cvRe.exec(text)) !== null){
+        spans.push({start:cm.index, end:cm.index + cm[0].length, severity:'error'});
+        if(cvRe.lastIndex === cm.index) cvRe.lastIndex++;
+      }
+    });
+    DEP_NOUNS.forEach(function(dep){
+      var re = new RegExp('([가-힣])(' + dep + ')', 'g');
+      var m2;
+      while((m2 = re.exec(text)) !== null){
+        var prevChar = m2[1];
+        var jIdx = jongseongIndex(prevChar);
+        var isEomi = (prevChar==='을'||prevChar==='은'||prevChar==='는'||prevChar==='던') || jIdx===8;
+        var combo = prevChar + dep;
+        var afterChar = text[m2.index + m2[0].length] || '';
+        if(isEomi && !DEP_EXCLUDE[combo] && !(dep==='때' && afterChar==='문')){
+          spans.push({start:m2.index, end:m2.index + m2[0].length, severity:'error'});
+        }
+        if(re.lastIndex === m2.index) re.lastIndex++;
+      }
+    });
+    if(!spans.length) return esc(text);
+    spans.sort(function(a,b){ return a.start - b.start; });
+    var merged = [];
+    spans.forEach(function(s){
+      var last = merged[merged.length-1];
+      if(last && s.start <= last.end){
+        last.end = Math.max(last.end, s.end);
+        if(s.severity === 'error') last.severity = 'error';
+      } else {
+        merged.push({start:s.start, end:s.end, severity:s.severity});
+      }
+    });
+    var out = '';
+    var pos = 0;
+    merged.forEach(function(s){
+      out += esc(text.slice(pos, s.start));
+      out += '<mark class="flag-' + s.severity + '">' + esc(text.slice(s.start, s.end)) + '</mark>';
+      pos = s.end;
+    });
+    out += esc(text.slice(pos));
+    return out;
+  }
+
+  /* ---------------- Export ---------------- */
+  document.getElementById('exportBtn').addEventListener('click', function(){
+    if(!checkResults.length){ alert('먼저 점검을 실행하세요.'); return; }
+    var rows = [];
+    checkResults.forEach(function(r){
+      if(r.issues.length === 0){
+        rows.push({
+          '학생': r.student, '항목': r.categoryLabel, '위치': r.header,
+          '글자수': r.charCount, '상한': r.limit || '', '심각도':'', '문제유형':'', '상세':'', '원문': r.text
+        });
+      } else {
+        r.issues.forEach(function(i){
+          rows.push({
+            '학생': r.student, '항목': r.categoryLabel, '위치': r.header,
+            '글자수': r.charCount, '상한': r.limit || '',
+            '심각도': i.severity === 'error' ? '오류' : '주의',
+            '문제유형': i.label, '상세': i.detail, '원문': r.text
+          });
+        });
+      }
+    });
+    var ws = XLSX.utils.json_to_sheet(rows);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '점검결과');
+    XLSX.writeFile(wb, '생기부_점검결과_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  });
+
+})();
+</script>
+</html>
