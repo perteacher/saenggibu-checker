@@ -1598,6 +1598,12 @@
       spans.push({start:sm.index, end:sm.index + sm[0].length, severity:'warn'});
       if(spaceRe.lastIndex === sm.index) spaceRe.lastIndex++;
     }
+    var gluedRe = /[.!?][가-힣]/g;
+    var glm;
+    while((glm = gluedRe.exec(text)) !== null){
+      spans.push({start:glm.index, end:glm.index + glm[0].length, severity:'warn'});
+      if(gluedRe.lastIndex === glm.index) gluedRe.lastIndex++;
+    }
     if(showTermOn()){
       extractTermCandidatesPos(text).forEach(function(t){
         var cl = termClusterLookup[t.phrase];
