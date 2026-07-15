@@ -504,7 +504,7 @@
       <details>
         <summary>항목별 글자수 상한값 펼치기</summary>
         <div class="limits-grid" id="limitGrid"></div>
-        <div class="hint">공백 포함 글자수 기준. 정확한 상한은 2026학년도 기재요령 참고자료7(영역별 입력 가능 최대 글자수)에서 다시 확인하세요.</div>
+        <div class="hint">공백 제외 글자수 기준(NEIS 입력 글자수와 동일). 정확한 상한은 2026학년도 기재요령 참고자료7(영역별 입력 가능 최대 글자수)에서 다시 확인하세요.</div>
       </details>
     </div>
 
@@ -576,7 +576,7 @@
     {id:'skip',       label:'사용 안 함'},
     {id:'auto',        label:'자율·자치활동', limit:500},
     {id:'club',        label:'동아리활동', limit:500},
-    {id:'career',       label:'진로활동', limit:700},
+    {id:'career',       label:'진로활동', limit:500},
     {id:'subject',      label:'교과 세특(과목별)', limit:500},
     {id:'personal',     label:'개인별 세특', limit:500},
     {id:'behavior',      label:'행동특성 및 종합의견', limit:500},
@@ -816,7 +816,7 @@
     '서술','기술','묘사','예측','추정','증명','검증','측정','계산','추론','정의','규정','명시','표기',
     '프로그래밍','코딩','디자인','모델링',
     '해결','극복','완수','정착','안정','심화','구체화','체계화','시각화','활성화','최적화','표준화'];
-  var HADA_CONJ = '(하고|하며|하다|하지|하는|하기|하여|해서|한|할|함|했|했다|했음|했던|시킴|시켰|시키는|시키고|시킨|시킬|되어|되는|되고|된|될|됨)';
+  var HADA_CONJ = '(하고|하며|하다|하지|하는|하기|하여|해서|한|할|함|했|했다|했음|했던|하면서|하고자|시킴|시켰|시키는|시키고|시킨|시킬|시키며|시켜|시켜서|시키면서|되어|되는|되고|된|될|됨|되며|됐|됐다|되면서)';
   var HADA_RE_SRC = '(' + HADA_NOUNS.join('|') + ')\\s' + HADA_CONJ + '(?=[\\s,.)]|$)';
   function checkHadaCompound(text){
     var issues = [];
@@ -944,8 +944,9 @@
       var idxNo = joined.findIndex(function(c){ return c === '번호'; });
       var idxName = joined.findIndex(function(c){ return c === '성명'; });
       var idxGrade = joined.findIndex(function(c){ return c === '학년'; });
+      var idxSemester = joined.findIndex(function(c){ return c === '학기'; });
       if(idxNo>=0 && idxName>=0 && idxGrade>=0 && idxName>idxNo && idxGrade>idxName){
-        rows.push({r:r, idxNo:idxNo, idxName:idxName, idxGrade:idxGrade});
+        rows.push({r:r, idxNo:idxNo, idxName:idxName, idxGrade:idxGrade, idxSemester: idxSemester>=0 ? idxSemester : null});
       }
     }
     return rows;
@@ -957,18 +958,20 @@
     var first = idRows[0];
     var row = aoa[first.r];
     var hintIdx = -1, hintText = '';
-    for(var c = first.idxGrade+1; c<row.length; c++){
+    var scanStart = Math.max(first.idxGrade, first.idxSemester != null ? first.idxSemester : -1) + 1;
+    for(var c = scanStart; c<row.length; c++){
       if(stripSp(row[c]) !== ''){ hintIdx = c; hintText = stripSp(row[c]); break; }
     }
     var block = {idRows: idRows, idxNo:first.idxNo, idxName:first.idxName, idxGrade:first.idxGrade};
-    if(/창의적체험활동/.test(hintText)){
+    if(/창의적체험활동/.test(hintText) || /자유학기활동상황/.test(hintText)){
       var subRow = (aoa[first.r+1] || []).map(stripSp);
       var idxArea = subRow.findIndex(function(c){ return c === '영역'; });
       var idxHours = subRow.findIndex(function(c){ return c === '시간'; });
       var idxText = subRow.findIndex(function(c){ return c === '특기사항'; });
       if(idxArea<0 || idxText<0) return null;
-      block.type = 'activity';
+      block.type = /자유학기활동상황/.test(hintText) ? 'freesem' : 'activity';
       block.idxArea = idxArea; block.idxHours = idxHours; block.idxText = idxText;
+      block.idxSemester = first.idxSemester;
       block.subHeaderOffset = 2;
     } else if(/종합의견/.test(hintText)){
       block.type = 'behavior'; block.idxText = hintIdx; block.subHeaderOffset = 1;
@@ -984,7 +987,7 @@
     var headerRowSet = {};
     block.idRows.forEach(function(h){
       headerRowSet[h.r] = true;
-      if(block.type === 'activity') headerRowSet[h.r+1] = true;
+      if(block.type === 'activity' || block.type === 'freesem') headerRowSet[h.r+1] = true;
     });
     var sectionTitleRows = {};
     block.idRows.forEach(function(h){
@@ -1030,26 +1033,28 @@
     return buffers;
   }
 
-  // activity (창체): each row's 영역 column starts/continues an entry, keyed by
-  // (student, grade, area); 진로활동's "희망분야" label row carries its value in
-  // a separate far-right cell.
+  // activity (창체/자유학기): each row's 영역 column starts/continues an entry, keyed by
+  // (student, grade, [semester,] area); 진로활동's "희망분야" label row carries its value
+  // in a separate far-right cell (창체 only).
   function parseActivityBlock(aoa, block, skip){
     var buffers = {};
-    var curStudent = null, curGrade = null, curArea = null;
+    var curStudent = null, curGrade = null, curArea = null, curSem = null;
+    var hasSem = block.idxSemester != null;
     function push(text, glueNL){
       if(!curStudent || !text) return;
       if(buffers[curStudent] === undefined) buffers[curStudent] = [];
-      var key = curStudent + '::' + curGrade + '::' + curArea;
+      var key = curStudent + '::' + curGrade + '::' + (hasSem ? curSem + '::' : '') + curArea;
       var arr = buffers[curStudent];
       var last = arr[arr.length-1];
       if(last && last._key === key){ last.text += (glueNL ? '\n' : '') + text; }
-      else { arr.push({grade:curGrade, area:curArea, text:text, _key:key}); }
+      else { arr.push({grade:curGrade, sem:curSem, area:curArea, text:text, _key:key}); }
     }
     for(var r=0; r<aoa.length; r++){
       if(skip.headerRowSet[r] || skip.sectionTitleRows[r] || skip.footerRows[r]) continue;
       var row = aoa[r];
       var nameVal = row[block.idxName];
       var gradeVal = row[block.idxGrade];
+      var semVal = hasSem ? row[block.idxSemester] : '';
       var areaVal = row[block.idxArea];
       var textVal = row[block.idxText];
       if(stripSp(nameVal) !== ''){
@@ -1057,6 +1062,7 @@
         if(buffers[curStudent] === undefined) buffers[curStudent] = [];
       }
       if(stripSp(gradeVal) !== ''){ curGrade = gradeVal; }
+      if(hasSem && stripSp(semVal) !== ''){ curSem = semVal; }
       if(stripSp(areaVal) !== ''){ curArea = String(areaVal).trim(); }
       if(!curStudent || !curArea) continue;
 
@@ -1098,7 +1104,8 @@
   var AREA_TO_CATEGORY = {
     '자율활동':'auto', '자율·자치활동':'auto', '자율‧자치활동':'auto',
     '동아리활동':'club',
-    '진로활동':'career'
+    '진로활동':'career',
+    '진로탐색활동':'freesem', '주제선택활동':'freesem', '예술·체육활동':'freesem', '예술체육활동':'freesem'
   };
 
   function parseFileToEntries(aoa, sourceName){
@@ -1156,6 +1163,24 @@
         });
       });
       return {type:'activity', typeLabel:'창체', entries:entries};
+    }
+
+    if(block.type === 'freesem'){
+      var buffers4 = parseActivityBlock(aoa, block, skip);
+      Object.keys(buffers4).forEach(function(student){
+        buffers4[student].forEach(function(chunk){
+          if(!chunk.text) return;
+          var catId = AREA_TO_CATEGORY[chunk.area] || 'freesem';
+          var semLabel = chunk.sem != null && chunk.sem !== '' ? (parseFloat(chunk.sem) || chunk.sem) + '학기 · ' : '';
+          entries.push({
+            student: student, source: sourceName,
+            header: (gradeLabel(chunk.grade) ? gradeLabel(chunk.grade) + ' · ' : '') + semLabel + chunk.area,
+            category: catId, categoryLabel: CAT_MAP[catId] ? CAT_MAP[catId].label : chunk.area,
+            grade: gradeNum(chunk.grade), text: chunk.text
+          });
+        });
+      });
+      return {type:'freesem', typeLabel:'자유학기', entries:entries};
     }
     return null;
   }
@@ -1338,7 +1363,8 @@
   document.getElementById('runBtn').addEventListener('click', runCheck);
 
   function countChars(text){
-    return (text || '').replace(/\r?\n/g,'').length;
+    var t = (text || '').replace(/^\[희망분야:[^\]]*\]\n?/, '');
+    return t.replace(/\s/g,'').length;
   }
 
   function runCheck(){
