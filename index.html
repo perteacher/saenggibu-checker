@@ -382,16 +382,18 @@
     color: var(--red);
     text-decoration: underline wavy var(--red);
     text-underline-offset: 3px;
-    padding: 0 1px;
+    padding: 0 2px;
     border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(163,55,44,0.45);
   }
   mark.flag-warn{
     background: var(--amber-bg);
     color: var(--amber);
     text-decoration: underline wavy var(--amber);
     text-underline-offset: 3px;
-    padding: 0 1px;
+    padding: 0 2px;
     border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(154,106,24,0.45);
   }
   .issues{
     margin-top: 8px;
@@ -1629,6 +1631,37 @@
     while((glm = gluedRe.exec(text)) !== null){
       spans.push({start:glm.index, end:glm.index + glm[0].length, severity:'warn'});
       if(gluedRe.lastIndex === glm.index) gluedRe.lastIndex++;
+    }
+    var punctSpaceRe = /\s+[.,]/g;
+    var pm2;
+    while((pm2 = punctSpaceRe.exec(text)) !== null){
+      spans.push({start:pm2.index, end:pm2.index + pm2[0].length, severity:'warn'});
+      if(punctSpaceRe.lastIndex === pm2.index) punctSpaceRe.lastIndex++;
+    }
+    var repeatCharRe = /([가-힣ㄱ-ㅎㅏ-ㅣ])\1{2,}/g;
+    var rcm;
+    while((rcm = repeatCharRe.exec(text)) !== null){
+      spans.push({start:rcm.index, end:rcm.index + rcm[0].length, severity:'warn'});
+      if(repeatCharRe.lastIndex === rcm.index) repeatCharRe.lastIndex++;
+    }
+    var repeatWordRe = /(\S{2,})\s+\1(?=[\s,.]|$)/g;
+    var rwm;
+    while((rwm = repeatWordRe.exec(text)) !== null){
+      spans.push({start:rwm.index, end:rwm.index + rwm[0].length, severity:'warn'});
+      if(repeatWordRe.lastIndex === rwm.index) repeatWordRe.lastIndex++;
+    }
+    var endingRe = /(다|요|죠|네요)\.(?=\s|$)/g;
+    var em;
+    while((em = endingRe.exec(text)) !== null){
+      spans.push({start:em.index, end:em.index + em[0].length, severity:'warn'});
+      if(endingRe.lastIndex === em.index) endingRe.lastIndex++;
+    }
+    if(student && student.length >= 2){
+      var nameIdx = text.indexOf(student);
+      while(nameIdx !== -1){
+        spans.push({start:nameIdx, end:nameIdx + student.length, severity:'warn'});
+        nameIdx = text.indexOf(student, nameIdx + student.length);
+      }
     }
     if(showTermOn()){
       extractTermCandidatesPos(text).forEach(function(t){
