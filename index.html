@@ -501,7 +501,7 @@
       <h2><span class="n">3</span>글자수 상한 · 점검 범위</h2>
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#cfd8e0;margin-bottom:10px;">
         <input type="checkbox" id="skipLowerGrades" checked>
-        1·2학년 항목은 글자수 점검 제외 (3학년만 확인)
+        이전 학년 항목은 글자수 점검 제외 (당해 학년만 확인, 자동 감지)
       </label>
       <details>
         <summary>항목별 글자수 상한값 펼치기</summary>
@@ -554,6 +554,9 @@
         </label>
         <label style="font-size:12px;display:flex;align-items:center;gap:5px;">
           <input type="checkbox" id="showTermIssues"> 표기 통일 필요 표시
+        </label>
+        <label style="font-size:12px;display:flex;align-items:center;gap:5px;">
+          <input type="checkbox" id="showObservability"> 관찰 불가 표현 표시
         </label>
         <div class="spacer"></div>
         <button class="btn" id="exportBtn">결과 엑셀로 내보내기</button>
@@ -785,6 +788,60 @@
       if(students.length >= 2){ clusters[key] = {students: students, count: map[key].length}; }
     });
     return clusters;
+  }
+
+  /* ---------------- Common misspelling dictionary (항상 틀리는 표기만) ---------------- */
+  // Only unambiguous, context-independent misspellings. Context-dependent pairs
+  // (로서/로써, 든지/던지, 바램[색이 바램은 정당] 등) are deliberately excluded.
+  var MISSPELL = [
+    ['몇일','며칠'], ['됬','됐'], ['왠만','웬만'], ['웬지','왠지'], ['갯수','개수'],
+    ['햇갈','헷갈'], ['오랫만','오랜만'], ['오랜동안','오랫동안'], ['역활','역할'],
+    ['금새','금세'], ['어의없','어이없'], ['희안','희한'], ['설레임','설렘'],
+    ['됀','된'], ['안됌','안 됨'], ['않되','안 되'], ['않돼','안 돼'], ['않됨','안 됨'],
+    ['되요','돼요'], ['뵈요','봬요'],
+    ['할께','할게'], ['줄께','줄게'], ['볼께','볼게'], ['갈께','갈게'], ['할껄','할걸'],
+    ['건들이','건드리'], ['들어나','드러나'], ['어떻해','어떡해'], ['궂이','굳이'],
+    ['일일히','일일이'], ['곰곰히','곰곰이'], ['깨끗히','깨끗이'], ['틈틈히','틈틈이'],
+    ['간간히','간간이'], ['꼼꼼이','꼼꼼히'], ['조용이','조용히'], ['솔직이','솔직히'],
+    ['틀림없히','틀림없이'], ['일부로','일부러'], ['서슴치','서슴지'], ['통채로','통째로'],
+    ['눈쌀','눈살'], ['눈꼽','눈곱'], ['빈털털이','빈털터리'], ['움추리','움츠리'],
+    ['치루','치르'], ['제작년','재작년'], ['댓가','대가'], ['개구장이','개구쟁이'],
+    ['그리고나서','그러고 나서'], ['뒤치닥거리','뒤치다꺼리'], ['늘상','늘']
+  ];
+  function checkMisspell(text){
+    var issues = [];
+    var found = [];
+    MISSPELL.forEach(function(pair){
+      if(text.indexOf(pair[0]) !== -1){
+        found.push(pair[0] + ' → ' + pair[1]);
+      }
+    });
+    if(found.length){
+      issues.push({severity:'error', label:'맞춤법 오류', detail: found.slice(0,5).join(', ') + (found.length>5 ? ' 외 ' + (found.length-5) + '건' : '')});
+    }
+    return issues;
+  }
+
+  /* ---------------- Observability check (관찰 불가 표현) — opt-in ---------------- */
+  // NEIS 기재요령: 교사가 직접 관찰할 수 없는 학생의 내적 상태(생각, 감정, 다짐 등)를
+  // 단정적으로 서술하지 말고 관찰 가능한 행동·결과물로 서술하라는 원칙. 이건 문법 규칙이
+  // 아니라 내용상 권고라 오탐/과다호출 소지가 크므로, 기본은 꺼두고 토글로 켤 수 있게 한다.
+  var OBSERVABLE_WORDS = [
+    '배움', '배우', '깨달음', '깨닫', '깨달았', '느낌', '느끼', '느꼈',
+    '생각함', '생각하', '생각했', '고민함', '고민하', '고민했',
+    '다짐함', '다짐하', '알게 됨', '알게 되', '마음가짐', '마음을 가지', '마음을 가다듬',
+    '염두', '의식을 함양', '의식을 기름'
+  ];
+  function checkObservability(text){
+    var issues = [];
+    var found = [];
+    OBSERVABLE_WORDS.forEach(function(w){
+      if(text.indexOf(w) !== -1) found.push(w);
+    });
+    if(found.length){
+      issues.push({severity:'warn', label:'관찰 불가 표현 의심', detail: '"' + Array.from(new Set(found)).slice(0,6).join('", "') + '" — 교사가 직접 관찰할 수 없는 내적 상태 서술입니다. 관찰 가능한 행동·결과물로 재서술을 검토하세요.'});
+    }
+    return issues;
   }
 
   /* ---------------- Safe spacing rule: '-적' suffix always attaches ---------------- */
@@ -1382,6 +1439,9 @@
     }
 
     var skipLowerGrades = document.getElementById('skipLowerGrades').checked;
+    var maxGrade = 0;
+    entries.forEach(function(e){ if(e.grade != null && e.grade > maxGrade) maxGrade = e.grade; });
+    if(maxGrade === 0) maxGrade = 3;
 
     var dupMap = {};
     entries.forEach(function(e){
@@ -1398,7 +1458,7 @@
       var issues = [];
       var charCount = countChars(e.text);
       var limit = limits[e.category];
-      var applyCharLimit = !(skipLowerGrades && e.grade != null && e.grade < 3);
+      var applyCharLimit = !(skipLowerGrades && e.grade != null && e.grade < maxGrade);
       var over = applyCharLimit && limit && charCount > limit;
       if(over){
         issues.push({severity:'error', label:'글자수 초과', detail: charCount + '자 / 상한 ' + limit + '자 (' + (charCount-limit) + '자 초과)'});
@@ -1434,6 +1494,8 @@
         }
       }
       issues = issues.concat(checkSpacingAndTypos(e.text));
+      issues = issues.concat(checkMisspell(e.text));
+      issues = issues.concat(checkObservability(e.text));
       issues = issues.concat(checkJeokSuffix(e.text));
       issues = issues.concat(checkHadaCompound(e.text));
       issues = issues.concat(checkGojaSpacing(e.text));
@@ -1468,9 +1530,15 @@
     var el = document.getElementById('showTermIssues');
     return el ? el.checked : false;
   }
+  function showObservabilityOn(){
+    var el = document.getElementById('showObservability');
+    return el ? el.checked : false;
+  }
   function visibleIssues(r){
-    if(showTermOn()) return r.issues;
-    return r.issues.filter(function(i){ return i.label !== '표기 통일 필요'; });
+    var issues = r.issues;
+    if(!showTermOn()) issues = issues.filter(function(i){ return i.label !== '표기 통일 필요'; });
+    if(!showObservabilityOn()) issues = issues.filter(function(i){ return i.label !== '관찰 불가 표현 의심'; });
+    return issues;
   }
 
   function renderResults(){
@@ -1536,6 +1604,7 @@
     document.getElementById(id).addEventListener('change', renderList);
   });
   document.getElementById('showTermIssues').addEventListener('change', renderResults);
+  document.getElementById('showObservability').addEventListener('change', renderResults);
 
   function renderList(){
     var fStudent = document.getElementById('filterStudent').value;
@@ -1671,6 +1740,22 @@
         }
       });
     }
+    if(showObservabilityOn()){
+      OBSERVABLE_WORDS.forEach(function(w){
+        var idx = text.indexOf(w);
+        while(idx !== -1){
+          spans.push({start:idx, end:idx + w.length, severity:'warn'});
+          idx = text.indexOf(w, idx + w.length);
+        }
+      });
+    }
+    MISSPELL.forEach(function(pair){
+      var idx = text.indexOf(pair[0]);
+      while(idx !== -1){
+        spans.push({start:idx, end:idx + pair[0].length, severity:'error'});
+        idx = text.indexOf(pair[0], idx + pair[0].length);
+      }
+    });
     var jeokRe = new RegExp(JEOK_RE.source, 'g');
     var jm;
     while((jm = jeokRe.exec(text)) !== null){
